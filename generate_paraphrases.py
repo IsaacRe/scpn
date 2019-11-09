@@ -51,8 +51,16 @@ def encode_data(out_file):
     infile = codecs.open(args.parsed_input_file, 'r', 'utf-8')
     inrdr = csv.DictReader(infile, delimiter='\t')
 
+    # read target parse data
+    parse_file = codecs.open(args.template_file, 'r', 'utf-8')
+    parses = list(csv.DictReader(parse_file, delimiter='\t'))
+
     # loop over sentences and transform them
     for d_idx, ex in enumerate(inrdr):
+        tgt = parses[d_idx]
+        p_idx = tgt['idx']
+        tgt_sent = tgt['tokens']
+        tgt_parse = tgt['parse']
         stime = time.time()
         ssent = ' '.join(ex['tokens'].split())
         seg_sent = bpe.segment(ssent.lower()).split()
@@ -76,6 +84,8 @@ def encode_data(out_file):
         np_parse = np.array([parse_gen_voc[w] for w in parse_tree], dtype='int32')
         torch_parse = Variable(torch.from_numpy(np_parse).long().cuda())
         torch_parse_len = torch.from_numpy(np.array([len(parse_tree)], dtype='int32')).long().cuda()
+
+        tp_templates, tp_template_lens = make_tp_templates(tgt_parse)
 
         # generate full parses from templates
         beam_dict = parse_net.batch_beam_search(torch_parse.unsqueeze(0), tp_templates,
@@ -109,7 +119,43 @@ def encode_data(out_file):
             print 'beam search OOM'
 
         print d_idx, time.time() - stime
-    
+
+
+def reparse(parse_str):
+    b = ''
+    space = True
+    para = False
+    for l in parse_str:
+        if l == '(':
+            b += '( '
+        elif l == ')':
+            b += ' )'
+        else:
+            b += l
+    c = []
+    closed = False
+    for w in b.split():
+        if w == ')' and not closed:
+            c = c[:-1] + [')']
+            closed = True
+        else:
+            if w == '(':
+                closed = False
+            c += [w]
+    c += ['EOP']
+    return c
+
+
+def make_tp_templates(parse_str):
+    parse_str = reparse(parse_str)
+    # encode templates
+    template_lens = [len(parse_str)]
+    np_templates = np.zeros((1, template_lens[0]), dtype='int32')
+    np_templates[0, :template_lens[0]] = [parse_gen_voc[w] for w in parse_str]
+    tp_templates = Variable(torch.from_numpy(np_templates).long().cuda())
+    tp_template_lens = torch.from_numpy(np.array(template_lens, dtype='int32')).long().cuda()
+    return tp_templates, tp_template_lens
+
 
 if __name__ == '__main__':
    
@@ -135,6 +181,9 @@ if __name__ == '__main__':
     parser.add_argument('--bpe_codes', type=str, default='data/bpe.codes')
     parser.add_argument('--bpe_vocab', type=str, default='data/vocab.txt')
     parser.add_argument('--bpe_vocab_thresh', type=int, default=50)
+
+    # input template args
+    parser.add_argument('--template-file', type=str, help='path to file specifying output templates')
 
     args = parser.parse_args()
 

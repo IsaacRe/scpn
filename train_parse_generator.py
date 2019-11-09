@@ -262,8 +262,8 @@ class ParseNet(nn.Module):
          
                 # add top n candidates
                 for z in range(beam_size):
-                    word_idx = top_indices[z].data[0]
-                    beam_candidates.append((curr_prob + final_preds[word_idx].data[0], 
+                    word_idx = top_indices[z].data.item()
+                    beam_candidates.append((curr_prob + final_preds[word_idx].data.item(),
                         hn, cn, seq + [word_idx]))
 
                 beam_candidates.sort(reverse=True)
@@ -380,8 +380,8 @@ class ParseNet(nn.Module):
                     _, top_indices = torch.sort(-preds)
                     # add top n candidates
                     for z in range(beam_size):
-                        word_idx = top_indices[z].data[0]
-                        beam_candidates.append((preds[word_idx].data[0], 
+                        word_idx = top_indices[z].data.item()
+                        beam_candidates.append((preds[word_idx].data.item(),
                             ex_hn, ex_cn, [word_idx]))
                     beam_dict[b_idx] = beam_candidates
 
@@ -406,9 +406,9 @@ class ParseNet(nn.Module):
                         curr_cn = ex_cn[:,o_idx,:].unsqueeze(0)
                         _, top_indices = torch.sort(-preds)
                         for z in range(beam_size):
-                            word_idx = top_indices[z].data[0]
+                            word_idx = top_indices[z].data.item()
 
-                            beam_candidates.append((curr_prob + float(preds[word_idx].cpu().data[0]), 
+                            beam_candidates.append((curr_prob + float(preds[word_idx].cpu().data.item()),
                                 curr_hn, curr_cn, seq + [word_idx]))
 
                     s_inds = np.argsort([x[0] for x in beam_candidates])[::-1]
@@ -580,7 +580,7 @@ if __name__ == '__main__':
                 
                 # compute masked loss
                 loss = criterion(preds, out_trans.view(-1))
-                ep_loss += loss.data[0]
+                ep_loss += loss.data.item()
 
                 optimizer.zero_grad()
                 loss.backward()
