@@ -88,6 +88,7 @@ def encode_data(out_file):
         tp_templates, tp_template_lens = make_tp_templates(tgt_parse)
 
         # generate full parses from templates
+        import pdb; pdb.set_trace()
         beam_dict = parse_net.batch_beam_search(torch_parse.unsqueeze(0), tp_templates,
             torch_parse_len[:], tp_template_lens, parse_gen_voc['EOP'], beam_size=3, max_steps=150)
         seq_lens = []
