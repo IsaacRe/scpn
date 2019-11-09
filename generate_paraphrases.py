@@ -85,10 +85,11 @@ def encode_data(out_file):
         torch_parse = Variable(torch.from_numpy(np_parse).long().cuda())
         torch_parse_len = torch.from_numpy(np.array([len(parse_tree)], dtype='int32')).long().cuda()
 
-        tp_templates, tp_template_lens = make_tp_templates(tgt_parse)
-
-        # generate full parses from templates
+        tp_parses, tp_len = make_tp_templates(tgt_parse)
         import pdb; pdb.set_trace()
+
+        """
+        # generate full parses from templates
         beam_dict = parse_net.batch_beam_search(torch_parse.unsqueeze(0), tp_templates,
             torch_parse_len[:], tp_template_lens, parse_gen_voc['EOP'], beam_size=3, max_steps=150)
         seq_lens = []
@@ -103,7 +104,7 @@ def encode_data(out_file):
             np_parses[z, :seq_lens[z]] = seq
         tp_parses = Variable(torch.from_numpy(np_parses).long().cuda())
         tp_len = torch.from_numpy(np.array(seq_lens, dtype='int32')).long().cuda()
-        
+        """
 
         # generate paraphrases from parses
         try:
